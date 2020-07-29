@@ -54,11 +54,24 @@ class TeamsConversationBot(TeamsActivityHandler):
         await turn_context.send_activity(reply_activity)
 
     async def _summarize(self, turn_context: TurnContext):
-        passedMessage = turn_context.activity.text
+        passed_message = turn_context.activity.text
 
-        if(len(passedMessage.split()) == 2):
-            urlRequired = passedMessage.split(" ")[1]
-            await self._send_card(turn_context, urlRequired)
+        if(len(passed_message.split()) == 2):
+            url_required = passed_message.split(" ")[1]
+            guid_start = url_required.find("video/") + 6
+            guid_end = url_required.find("?")
+            GUID = url_required[guid_start:guid_end]
+
+            # TODO: Replace with function call that retrieves JSON
+            # Call to retrieve meeting transcript
+            transcription_text = GUID
+            
+            # TODO: Replace with function call that runs Azure Cognitive API and Summary API
+            # Call to Summary and analytics API
+            summary_text = GUID 
+            
+            
+            await self._send_card(turn_context, url_required, summary_text)
         else: 
             message = "Missing a valid Stream URL..."
             reply_activity = MessageFactory.text(message)
@@ -74,7 +87,7 @@ class TeamsConversationBot(TeamsActivityHandler):
         await turn_context.send_activity(reply_activity)
 
 
-    async def _send_card(self, turn_context: TurnContext, meetingURL):
+    async def _send_card(self, turn_context: TurnContext, meeting_url, summary_text):
         buttons = [
             CardAction(
                 type=ActionTypes.message_back,
@@ -85,11 +98,11 @@ class TeamsConversationBot(TeamsActivityHandler):
                 type=ActionTypes.message_back, 
                 title="See Recording",
                 text="recording", 
-                value={"meetingURL": meetingURL}
+                value={"meetingURL": meeting_url}
             )
         ]
         card = HeroCard(
-            title="Summary of the last Meeting", text = "Summary info here", buttons = buttons
+            title="Summary of the last Meeting", text = summary_text, buttons = buttons
         )
         await turn_context.send_activity(
             MessageFactory.attachment(CardFactory.hero_card(card))
