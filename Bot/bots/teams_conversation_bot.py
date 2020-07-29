@@ -7,6 +7,7 @@ from botbuilder.core.teams import TeamsActivityHandler, TeamsInfo
 from botbuilder.schema import CardAction, HeroCard, Mention, ConversationParameters
 from botbuilder.schema.teams import TeamInfo, TeamsChannelAccount
 from botbuilder.schema._connector_client_enums import ActionTypes
+from summarize.py import summarize
 
 import webbrowser
 
@@ -64,11 +65,11 @@ class TeamsConversationBot(TeamsActivityHandler):
 
             # TODO: Replace with function call that retrieves JSON
             # Call to retrieve meeting transcript
-            transcription_text = GUID
+            transcription_text = "sample.txt"
             
             # TODO: Replace with function call that runs Azure Cognitive API and Summary API
             # Call to Summary and analytics API
-            summary_text = GUID 
+            summary_text = summarize(transcription_text)
             
             
             await self._send_card(turn_context, url_required, summary_text)
