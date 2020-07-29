@@ -1,0 +1,79 @@
+WEBVTT
+
+NOTE duration:"00:00:43.5860000"
+
+NOTE language:en-us
+
+NOTE Confidence: 0.855910181999207
+
+a6eca541-056c-4d08-afed-cbb47c7afb2c
+00:00:02.190 --> 00:00:04.860
+No, it's not. The recording I
+turn on live captions.
+
+NOTE Confidence: 0.833735108375549
+
+0123593b-27c5-4815-9009-d56959c349dc
+00:00:05.750 --> 00:00:08.478
+You're being recorded OK.
+
+NOTE Confidence: 0.888527750968933
+
+91f003f6-be44-4d40-8fad-b126e75ed7fa
+00:00:09.460 --> 00:00:11.781
+Yeah, I got that, but isn't
+that just a video recording?
+
+NOTE Confidence: 0.937694370746613
+
+8bda34af-e898-455b-b99f-1ee1573c67e8
+00:00:13.420 --> 00:00:14.580
+Yeah, but.
+
+NOTE Confidence: 0.662433207035065
+
+1a0cfece-7074-47d8-9d01-64c060def53d
+00:00:16.790 --> 00:00:21.088
+Actually hold up, turn on
+light, captain.
+
+NOTE Confidence: 0.793041527271271
+
+e3c5a3f7-7b7f-4190-88b4-cd4ae760c188
+00:00:22.490 --> 00:00:24.770
+This is pretty cool.
+
+NOTE Confidence: 0.910751402378082
+
+08feaf53-e14a-410d-ab4e-93d86f62ae9c
+00:00:24.770 --> 00:00:29.630
+I know there's a way where you
+can come have.
+
+NOTE Confidence: 0.877762377262115
+
+9d7d9ef3-eb42-49fd-b6cd-092a83eecd29
+00:00:30.330 --> 00:00:34.378
+Like a transcription of it
+after the meeting. OK, So what
+
+NOTE Confidence: 0.877762377262115
+
+5f33f85f-fdcf-4bcf-a56f-85faa869f9b0
+00:00:34.378 --> 00:00:38.426
+I'm wondering is since life
+caption is on and the meetings
+
+NOTE Confidence: 0.877762377262115
+
+07b9c0f9-0707-4d49-bb3d-52beb3d6a4b4
+00:00:38.426 --> 00:00:42.106
+recording if you stop the
+recording now and check the
+
+NOTE Confidence: 0.877762377262115
+
+2572627f-8a90-4575-877f-1de0e546442f
+00:00:42.106 --> 00:00:43.578
+folder with this recorded.
+
