@@ -7,7 +7,8 @@ from botbuilder.core.teams import TeamsActivityHandler, TeamsInfo
 from botbuilder.schema import CardAction, HeroCard, Mention, ConversationParameters
 from botbuilder.schema.teams import TeamInfo, TeamsChannelAccount
 from botbuilder.schema._connector_client_enums import ActionTypes
-from summarize.py import summarize
+
+from .cognitive_services_pipeline import summarize
 
 import webbrowser
 
@@ -40,8 +41,11 @@ class TeamsConversationBot(TeamsActivityHandler):
             await self._openMeetingRecording(turn_context)
             return
 
+        if "last" in text:
+            await self._summarize(turn_context)
+
         #await self._send_card(turn_context, False)
-        return
+        #return
 
     async def _mention_activity(self, turn_context: TurnContext):
         mention = Mention(
@@ -65,14 +69,20 @@ class TeamsConversationBot(TeamsActivityHandler):
 
             # TODO: Replace with function call that retrieves JSON
             # Call to retrieve meeting transcript
-            transcription_text = "sample.txt"
+
+            # temporarily using fake sample file text
+            
+            # read file
+            file = open('bots/sample.txt', 'rb')
+            transcription_text = file.read()
             
             # TODO: Replace with function call that runs Azure Cognitive API and Summary API
             # Call to Summary and analytics API
-            summary_text = summarize(transcription_text)
+            summary_text = summarize.summarize(transcription_text)
+            file.close()
             
             
-            await self._send_card(turn_context, url_required, summary_text)
+            await self._send_summary_card(turn_context, url_required, summary_text)
         else: 
             message = "Missing a valid Stream URL..."
             reply_activity = MessageFactory.text(message)
@@ -88,7 +98,7 @@ class TeamsConversationBot(TeamsActivityHandler):
         await turn_context.send_activity(reply_activity)
 
 
-    async def _send_card(self, turn_context: TurnContext, meeting_url, summary_text):
+    async def _send_summary_card(self, turn_context: TurnContext, meeting_url, summary_text):
         buttons = [
             CardAction(
                 type=ActionTypes.message_back,
@@ -97,7 +107,7 @@ class TeamsConversationBot(TeamsActivityHandler):
             ),
             CardAction(
                 type=ActionTypes.message_back, 
-                title="See Recording",
+                title="See Current Meeting Recording",
                 text="recording", 
                 value={"meetingURL": meeting_url}
             )
