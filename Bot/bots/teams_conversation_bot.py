@@ -8,6 +8,7 @@ from botbuilder.schema import CardAction, HeroCard, Mention, ConversationParamet
 from botbuilder.schema.teams import TeamInfo, TeamsChannelAccount
 from botbuilder.schema._connector_client_enums import ActionTypes
 
+import webbrowser
 
 class TeamsConversationBot(TeamsActivityHandler):
     def __init__(self, app_id: str, app_password: str):
@@ -66,6 +67,8 @@ class TeamsConversationBot(TeamsActivityHandler):
 
     async def _openMeetingRecording(self, turn_context: TurnContext):
         message = "Recording opening..."
+        url = turn_context.activity.value["meetingURL"]
+        webbrowser.open(url, new=0)
         
         reply_activity = MessageFactory.text(message)
         await turn_context.send_activity(reply_activity)
