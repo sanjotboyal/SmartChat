@@ -8,5 +8,5 @@ def summarize(content):
     },
     headers={'api-key': '2080747b-b6f5-45a2-8f76-b919ebff180b'}
     )
-    return r.json()
+    return r.json()["output"]
 
