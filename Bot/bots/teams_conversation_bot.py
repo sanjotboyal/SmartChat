@@ -30,27 +30,15 @@ class TeamsConversationBot(TeamsActivityHandler):
         TurnContext.remove_recipient_mention(turn_context.activity)
         text = turn_context.activity.text.strip().lower()
 
-        if "mention" in text:
-            await self._mention_activity(turn_context)
+        if "summarize" in text:
+            await self._summarize(turn_context)
             return
 
-        if "update" in text:
-            await self._send_card(turn_context, True)
+        if "recording" in text:
+            await self._openMeetingRecording(turn_context)
             return
 
-        if "message" in text:
-            await self._message_all_members(turn_context)
-            return
-
-        if "who" in text:
-            await self._get_member(turn_context)
-            return
-
-        if "delete" in text:
-            await self._delete_card_activity(turn_context)
-            return
-
-        await self._send_card(turn_context, False)
+        #await self._send_card(turn_context, False)
         return
 
     async def _mention_activity(self, turn_context: TurnContext):
@@ -64,57 +52,99 @@ class TeamsConversationBot(TeamsActivityHandler):
         reply_activity.entities = [Mention().deserialize(mention.serialize())]
         await turn_context.send_activity(reply_activity)
 
-    async def _send_card(self, turn_context: TurnContext, isUpdate):
+    async def _summarize(self, turn_context: TurnContext):
+        passedMessage = turn_context.activity.text
+
+        if(len(passedMessage.split()) == 2):
+            urlRequired = passedMessage.split(" ")[1]
+            await self._send_card(turn_context, urlRequired)
+        else: 
+            message = "Missing a valid Stream URL..."
+            reply_activity = MessageFactory.text(message)
+            await turn_context.send_activity(reply_activity)
+        
+
+    async def _openMeetingRecording(self, turn_context: TurnContext):
+        message = "Recording opening..."
+        
+        reply_activity = MessageFactory.text(message)
+        await turn_context.send_activity(reply_activity)
+
+
+    async def _send_card(self, turn_context: TurnContext, meetingURL):
         buttons = [
             CardAction(
                 type=ActionTypes.message_back,
                 title="Message all members",
                 text="messageallmembers",
             ),
-            CardAction(type=ActionTypes.message_back, title="Who am I?", text="whoami"),
             CardAction(
-                type=ActionTypes.message_back, title="Delete card", text="deletecard"
-            ),
-        ]
-        if isUpdate:
-            await self._send_update_card(turn_context, buttons)
-        else:
-            await self._send_welcome_card(turn_context, buttons)
-
-    async def _send_welcome_card(self, turn_context: TurnContext, buttons):
-        buttons.append(
-            CardAction(
-                type=ActionTypes.message_back,
-                title="Update Card",
-                text="updatecardaction",
-                value={"count": 0},
+                type=ActionTypes.message_back, 
+                title="See Recording",
+                text="recording", 
+                value={"meetingURL": meetingURL}
             )
-        )
+        ]
         card = HeroCard(
-            title="Welcome Card", text="Click the buttons.", buttons=buttons
+            title="Summary of the last Meeting", text = "Summary info here", buttons = buttons
         )
         await turn_context.send_activity(
             MessageFactory.attachment(CardFactory.hero_card(card))
         )
 
-    async def _send_update_card(self, turn_context: TurnContext, buttons):
-        data = turn_context.activity.value
-        data["count"] += 1
-        buttons.append(
-            CardAction(
-                type=ActionTypes.message_back,
-                title="Update Card",
-                text="updatecardaction",
-                value=data,
-            )
-        )
-        card = HeroCard(
-            title="Updated card", text=f"Update count {data['count']}", buttons=buttons
-        )
 
-        updated_activity = MessageFactory.attachment(CardFactory.hero_card(card))
-        updated_activity.id = turn_context.activity.reply_to_id
-        await turn_context.update_activity(updated_activity)
+
+    # async def _send_card(self, turn_context: TurnContext, isUpdate):
+    #     buttons = [
+    #         CardAction(
+    #             type=ActionTypes.message_back,
+    #             title="Message all members",
+    #             text="messageallmembers",
+    #         ),
+    #         CardAction(type=ActionTypes.message_back, title="Who am I?", text="whoami"),
+    #         CardAction(
+    #             type=ActionTypes.message_back, title="Delete card", text="deletecard"
+    #         ),
+    #     ]
+    #     if isUpdate:
+    #         await self._send_update_card(turn_context, buttons)
+    #     else:
+    #         await self._send_welcome_card(turn_context, buttons)
+
+    # async def _send_welcome_card(self, turn_context: TurnContext, buttons):
+    #     buttons.append(
+    #         CardAction(
+    #             type=ActionTypes.message_back,
+    #             title="Update Card",
+    #             text="updatecardaction",
+    #             value={"count": 0},
+    #         )
+    #     )
+    #     card = HeroCard(
+    #         title="Welcome Card", text="Click the buttons.", buttons=buttons
+    #     )
+    #     await turn_context.send_activity(
+    #         MessageFactory.attachment(CardFactory.hero_card(card))
+    #     )
+
+    # async def _send_update_card(self, turn_context: TurnContext, buttons):
+    #     data = turn_context.activity.value
+    #     data["count"] += 1
+    #     buttons.append(
+    #         CardAction(
+    #             type=ActionTypes.message_back,
+    #             title="Update Card",
+    #             text="updatecardaction",
+    #             value=data,
+    #         )
+    #     )
+    #     card = HeroCard(
+    #         title="Updated card", text=f"Update count {data['count']}", buttons=buttons
+    #     )
+
+    #     updated_activity = MessageFactory.attachment(CardFactory.hero_card(card))
+    #     updated_activity.id = turn_context.activity.reply_to_id
+    #     await turn_context.update_activity(updated_activity)
 
     async def _get_member(self, turn_context: TurnContext):
         TeamsChannelAccount: member = None
@@ -166,23 +196,23 @@ class TeamsConversationBot(TeamsActivityHandler):
             MessageFactory.text("All messages have been sent")
         )
 
-    async def _get_paged_members(
-        self, turn_context: TurnContext
-    ) -> List[TeamsChannelAccount]:
-        paged_members = []
-        continuation_token = None
+    # async def _get_paged_members(
+    #     self, turn_context: TurnContext
+    # ) -> List[TeamsChannelAccount]:
+    #     paged_members = []
+    #     continuation_token = None
 
-        while True:
-            current_page = await TeamsInfo.get_paged_members(
-                turn_context, continuation_token, 100
-            )
-            continuation_token = current_page.continuation_token
-            paged_members.extend(current_page.members)
+    #     while True:
+    #         current_page = await TeamsInfo.get_paged_members(
+    #             turn_context, continuation_token, 100
+    #         )
+    #         continuation_token = current_page.continuation_token
+    #         paged_members.extend(current_page.members)
 
-            if continuation_token is None:
-                break
+    #         if continuation_token is None:
+    #             break
 
-        return paged_members
+    #     return paged_members
 
     async def _delete_card_activity(self, turn_context: TurnContext):
         await turn_context.delete_activity(turn_context.activity.reply_to_id)
