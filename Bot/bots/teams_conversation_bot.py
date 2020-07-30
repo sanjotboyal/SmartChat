@@ -12,6 +12,7 @@ from .cognitive_services_pipeline import summarize
 from .scraper import TranscriptionScraper
 
 import webbrowser
+import json
 
 meetings_list = []
 mentioned_members_list = []
@@ -87,9 +88,9 @@ class TeamsConversationBot(TeamsActivityHandler):
             
             # TODO: Replace with function call that runs Azure Cognitive API and Summary API
             # Call to Summary and analytics API
-            summary_text = summarize.summarize(transcription_text)
+            summary_json = json.loads(summarize.summarize(transcription_text))
             file.close()
-            await self._send_last_meeting_card(turn_context, url_required, summary_text)
+            await self._send_last_meeting_card(turn_context, url_required, summary_json, GUID)
         else: 
             message = "There was no recorded meetings before this..."
             reply_activity = MessageFactory.text(message)
@@ -111,9 +112,9 @@ class TeamsConversationBot(TeamsActivityHandler):
             
             # TODO: Replace with function call that runs Azure Cognitive API and Summary API
             # Call to Summary and analytics API
-            summary_text = summarize.summarize(transcription_text)
+            summary_json = json.loads(summarize.summarize(transcription_text))
             file.close()
-            await self._send_last_meeting_card(turn_context, url_required, summary_text)
+            await self._send_last_meeting_card(turn_context, url_required, summary_json, GUID)
 
         else: 
             message = "No Past Meetings saved..."
@@ -143,11 +144,11 @@ class TeamsConversationBot(TeamsActivityHandler):
             
             # TODO: Replace with function call that runs Azure Cognitive API and Summary API
             # Call to Summary and analytics API
-            summary_text = summarize.summarize(transcription_text)
+            summary_json = json.loads(summarize.summarize(transcription_text))
             file.close()
 
             # Send summary card to chat
-            await self._send_summary_card(turn_context, url_required, summary_text, GUID)
+            await self._send_summary_card(turn_context, url_required, summary_json, GUID)
 
             # Personal Message members of the chat that were mentioned in the meeting
             await self._message_all_members(turn_context, str(transcription_text))
@@ -166,7 +167,7 @@ class TeamsConversationBot(TeamsActivityHandler):
         reply_activity = MessageFactory.text(message)
         await turn_context.send_activity(reply_activity)
 
-    async def _send_last_meeting_card(self, turn_context: TurnContext, meeting_url, summary_text):
+    async def _send_last_meeting_card(self, turn_context: TurnContext, meeting_url, summary_json, GUID):
         buttons = [
             CardAction(
                 type=ActionTypes.message_back, 
@@ -176,14 +177,14 @@ class TeamsConversationBot(TeamsActivityHandler):
             )
         ]
         card = HeroCard(
-            title="Summary of the Previous Meeting", text = summary_text, buttons = buttons
+            title="Summary of this Meeting: " + GUID, subtitle= "Meeting Sentiment" + str(summary_json["sentiment"]),text = summary_json["summary_text"], buttons = buttons
         )
         await turn_context.send_activity(
             MessageFactory.attachment(CardFactory.hero_card(card))
         )
 
 
-    async def _send_summary_card(self, turn_context: TurnContext, meeting_url, summary_text, GUID):
+    async def _send_summary_card(self, turn_context: TurnContext, meeting_url, summary_json, GUID):
         buttons = [
             CardAction(
                 type=ActionTypes.message_back,
@@ -198,7 +199,7 @@ class TeamsConversationBot(TeamsActivityHandler):
             )
         ]
         card = HeroCard(
-            title="Summary of this Meeting: " + GUID , text = summary_text, buttons = buttons
+            title="Summary of this Meeting: " + GUID, subtitle= "Meeting Sentiment" + str(summary_json["sentiment"]),text = summary_json["summary_text"], buttons = buttons
         )
         await turn_context.send_activity(
             MessageFactory.attachment(CardFactory.hero_card(card))
