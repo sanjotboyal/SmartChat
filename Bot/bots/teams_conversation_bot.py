@@ -47,6 +47,11 @@ class TeamsConversationBot(TeamsActivityHandler):
 
         if "last" in text:
             await self._last_meeting(turn_context)
+            return
+
+        if "previous" in text:
+            await self._previous_meeting(turn_context)
+            
 
         #await self._send_card(turn_context, False)
         #return
@@ -61,6 +66,31 @@ class TeamsConversationBot(TeamsActivityHandler):
         reply_activity = MessageFactory.text(f"Hello {mention.text}")
         reply_activity.entities = [Mention().deserialize(mention.serialize())]
         await turn_context.send_activity(reply_activity)
+
+
+    async def _previous_meeting(self, turn_context: TurnContext):
+        if (len(meetings_list) > 1): 
+            GUID = meetings_list[-2]
+            url_required = "https://msit.microsoftstream.com/video/" + GUID
+
+            # TODO: Replace with function call that retrieves JSON
+            # Call to retrieve meeting transcript
+            #transcription_text = TranscriptionScraper.getMeetingJson(GUID)
+
+            # # temporarily using fake sample file text
+            # # read file
+            file = open('bots/sample.txt', 'rb')
+            transcription_text = file.read()
+            
+            # TODO: Replace with function call that runs Azure Cognitive API and Summary API
+            # Call to Summary and analytics API
+            summary_text = summarize.summarize(transcription_text)
+            file.close()
+            await self._send_last_meeting_card(turn_context, url_required, summary_text)
+        else: 
+            message = "There was no recorded meetings before this..."
+            reply_activity = MessageFactory.text(message)
+            await turn_context.send_activity(reply_activity)
 
     async def _last_meeting(self, turn_context: TurnContext):
         if (len(meetings_list) > 0): 
@@ -138,7 +168,7 @@ class TeamsConversationBot(TeamsActivityHandler):
             )
         ]
         card = HeroCard(
-            title="Summary of the last Meeting", text = summary_text, buttons = buttons
+            title="Summary of the Previous Meeting", text = summary_text, buttons = buttons
         )
         await turn_context.send_activity(
             MessageFactory.attachment(CardFactory.hero_card(card))
@@ -149,12 +179,12 @@ class TeamsConversationBot(TeamsActivityHandler):
         buttons = [
             CardAction(
                 type=ActionTypes.message_back,
-                title="Message all members",
-                text="messageallmembers",
+                title="Get Previous Meeting Info",
+                text="previous",
             ),
             CardAction(
                 type=ActionTypes.message_back, 
-                title="See Current Meeting Recording",
+                title="See This Recording",
                 text="recording", 
                 value={"meetingURL": meeting_url}
             )
