@@ -3,24 +3,24 @@
     "manifestVersion": "1.5",
     "version": "1.0.0",
     "id": "b608ddab-f544-469b-9422-49b705219183",
-    "packageName": "com.teams.sample.teamsconversationbot",
+    "packageName": "com.smartchat.hackathon2020",
     "developer": {
-      "name": "teamsConversationBot",
+      "name": "SmartChat MSFT Hacks 2020",
       "websiteUrl": "https://www.microsoft.com",
       "privacyUrl": "https://www.teams.com/privacy",
       "termsOfUseUrl": "https://www.teams.com/termsofuser"
     },
     "icons": {
-      "outline": "icon-outline.png",
-      "color": "icon-color.png"
+      "outline": "icon-2.png",
+      "color": "icon.png"
     },
     "name": {
-      "short": "TeamsConversationBot",
-      "full": "TeamsConversationBot"
+      "short": "SmartChatAssistantBot",
+      "full": "SmartChatAssistantBot"
     },
     "description": {
-      "short": "TeamsConversationBot",
-      "full": "TeamsConversationBot"
+      "short": "Obtain summary notes for all your meetings with this assistant.",
+      "full": "Obtain summary notes for all your meetings with this assistant."
     },
     "accentColor": "#FFFFFF",
     "bots": [
@@ -42,16 +42,12 @@
             ],
             "commands": [
               {
-                "title": "MentionMe",
-                "description": "Sends message with @mention of the sender"
+                "title": "Summarize 'Stream URL'",
+                "description": "See a summary/key analytics of the recorded meeting from the passed URL."
               },
               {
-                "title": "Show Welcome",
-                "description": "Shows the welcome card"
-              },
-              {
-                "title": "MessageAllMembers",
-                "description": "Send 1 to 1 message to all members of the current conversation"
+                "title": "Last Meeting",
+                "description": "Returns a summary and key analytics of the previous meeting!"
               }
             ]
           }
