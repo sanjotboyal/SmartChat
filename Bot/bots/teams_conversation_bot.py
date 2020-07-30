@@ -128,24 +128,25 @@ class TeamsConversationBot(TeamsActivityHandler):
             url_required = passed_message.split(" ")[2]
             guid_start = url_required.find("video/") + 6
             #guid_end = url_required.find("?")
-            GUID = url_required[guid_start:]
-
+            GUID = url_required[guid_start:len(url_required)]
+            GUID = GUID[:-1]
             # add to meetings list 
             meetings_list.append(GUID)
 
             # TODO: Replace with function call that retrieves JSON
             # Call to retrieve meeting transcript
-            #transcription_text = TranscriptionScraper.getMeetingJson(GUID)
+
+            transcription_text = TranscriptionScraper.getMeetingJson(GUID)
 
             # # temporarily using fake sample file text
             # # read file
-            file = open('bots/sample.txt', 'rb')
-            transcription_text = file.read()
+            #file = open('bots/sample.txt', 'rb')
+            #transcription_text = file.read()
             
             # TODO: Replace with function call that runs Azure Cognitive API and Summary API
             # Call to Summary and analytics API
             summary_json = json.loads(summarize.summarize(transcription_text))
-            file.close()
+            #file.close()
 
             # Send summary card to chat
             await self._send_summary_card(turn_context, url_required, summary_json, GUID)
@@ -268,6 +269,8 @@ class TeamsConversationBot(TeamsActivityHandler):
                         conversation_reference_inner, send_message, self._app_id
                     )
 
+                    
+
                 async def send_message(tc2: TurnContext):
                     return await tc2.send_activity(
                         "Hi you were mentioned in the meeting. Here's some context: " + context_message
@@ -281,6 +284,7 @@ class TeamsConversationBot(TeamsActivityHandler):
         await turn_context.send_activity(
             MessageFactory.text("All members who's names were mentioned in the meeting were notified with context: " + mentioned_members)
         )
+        mentioned_members_list.clear()
 
     async def _get_paged_members(
         self, turn_context: TurnContext
