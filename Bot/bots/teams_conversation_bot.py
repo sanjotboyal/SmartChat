@@ -199,7 +199,7 @@ class TeamsConversationBot(TeamsActivityHandler):
             )
         ]
         card = HeroCard(
-            title="Summary of this Meeting: " + GUID, subtitle= "Meeting Sentiment" + str(summary_json["sentiment"]),text = summary_json["summary_text"], buttons = buttons
+            title="Summary of this Meeting: " + GUID, subtitle= "Meeting Sentiment: " + str(summary_json["sentiment"]),text = summary_json["summary_text"], buttons = buttons
         )
         await turn_context.send_activity(
             MessageFactory.attachment(CardFactory.hero_card(card))
