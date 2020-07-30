@@ -14,6 +14,7 @@ from .scraper import TranscriptionScraper
 import webbrowser
 
 meetings_list = []
+mentioned_members_list = []
 
 class TeamsConversationBot(TeamsActivityHandler):
 
@@ -51,7 +52,9 @@ class TeamsConversationBot(TeamsActivityHandler):
 
         if "previous" in text:
             await self._previous_meeting(turn_context)
+        
             
+        
 
         #await self._send_card(turn_context, False)
         #return
@@ -111,6 +114,7 @@ class TeamsConversationBot(TeamsActivityHandler):
             summary_text = summarize.summarize(transcription_text)
             file.close()
             await self._send_last_meeting_card(turn_context, url_required, summary_text)
+
         else: 
             message = "No Past Meetings saved..."
             reply_activity = MessageFactory.text(message)
@@ -140,11 +144,14 @@ class TeamsConversationBot(TeamsActivityHandler):
             # TODO: Replace with function call that runs Azure Cognitive API and Summary API
             # Call to Summary and analytics API
             summary_text = summarize.summarize(transcription_text)
-            
             file.close()
-            
-            
+
+            # Send summary card to chat
             await self._send_summary_card(turn_context, url_required, summary_text, GUID)
+
+            # Personal Message members of the chat that were mentioned in the meeting
+            await self._message_all_members(turn_context, str(transcription_text))
+
         else: 
             message = "Missing/Invalid Stream URL..."
             reply_activity = MessageFactory.text(message)
@@ -197,60 +204,6 @@ class TeamsConversationBot(TeamsActivityHandler):
             MessageFactory.attachment(CardFactory.hero_card(card))
         )
 
-
-
-    # async def _send_card(self, turn_context: TurnContext, isUpdate):
-    #     buttons = [
-    #         CardAction(
-    #             type=ActionTypes.message_back,
-    #             title="Message all members",
-    #             text="messageallmembers",
-    #         ),
-    #         CardAction(type=ActionTypes.message_back, title="Who am I?", text="whoami"),
-    #         CardAction(
-    #             type=ActionTypes.message_back, title="Delete card", text="deletecard"
-    #         ),
-    #     ]
-    #     if isUpdate:
-    #         await self._send_update_card(turn_context, buttons)
-    #     else:
-    #         await self._send_welcome_card(turn_context, buttons)
-
-    # async def _send_welcome_card(self, turn_context: TurnContext, buttons):
-    #     buttons.append(
-    #         CardAction(
-    #             type=ActionTypes.message_back,
-    #             title="Update Card",
-    #             text="updatecardaction",
-    #             value={"count": 0},
-    #         )
-    #     )
-    #     card = HeroCard(
-    #         title="Welcome Card", text="Click the buttons.", buttons=buttons
-    #     )
-    #     await turn_context.send_activity(
-    #         MessageFactory.attachment(CardFactory.hero_card(card))
-    #     )
-
-    # async def _send_update_card(self, turn_context: TurnContext, buttons):
-    #     data = turn_context.activity.value
-    #     data["count"] += 1
-    #     buttons.append(
-    #         CardAction(
-    #             type=ActionTypes.message_back,
-    #             title="Update Card",
-    #             text="updatecardaction",
-    #             value=data,
-    #         )
-    #     )
-    #     card = HeroCard(
-    #         title="Updated card", text=f"Update count {data['count']}", buttons=buttons
-    #     )
-
-    #     updated_activity = MessageFactory.attachment(CardFactory.hero_card(card))
-    #     updated_activity.id = turn_context.activity.reply_to_id
-    #     await turn_context.update_activity(updated_activity)
-
     async def _get_member(self, turn_context: TurnContext):
         TeamsChannelAccount: member = None
         try:
@@ -265,59 +218,83 @@ class TeamsConversationBot(TeamsActivityHandler):
         else:
             await turn_context.send_activity(f"You are: {member.name}")
 
-    async def _message_all_members(self, turn_context: TurnContext):
+    async def _message_all_members(self, turn_context: TurnContext, transcription_text):
         team_members = await self._get_paged_members(turn_context)
 
         for member in team_members:
-            conversation_reference = TurnContext.get_conversation_reference(
-                turn_context.activity
-            )
+            # check if member's name was mentioned in meeting
+            member_first_name = member.name.split(" ")[0]
+            
 
-            conversation_parameters = ConversationParameters(
-                is_group=False,
-                bot=turn_context.activity.recipient,
-                members=[member],
-                tenant_id=turn_context.activity.conversation.tenant_id,
-            )
+            if transcription_text.lower().find(member_first_name.lower()) != -1:
+                mentioned_members_list.append(member_first_name)
 
-            async def get_ref(tc1):
-                conversation_reference_inner = TurnContext.get_conversation_reference(
-                    tc1.activity
+                # split text into words. Remove punctuation to prevent mistakes in indexing 
+                transcription_text = transcription_text.replace(",","")
+                transcription_text = transcription_text.replace(".","")
+                transcription_text = transcription_text.replace("\\r"," ")
+                transcription_text = transcription_text.replace("\\n","")
+
+                transcription_list = transcription_text.lower().split(" ")
+                
+                # find name placement in transcription list 
+                indexFound = transcription_list.index(member_first_name.lower())
+
+                # get range of words around name to get context and form message
+                context_threshold_range = 10
+                context_message = ""
+                
+                # compose message with context
+                for word in range (indexFound - context_threshold_range, indexFound + context_threshold_range):
+                    context_message += transcription_list[word] + " "
+
+                conversation_reference = TurnContext.get_conversation_reference(
+                    turn_context.activity
                 )
-                return await tc1.adapter.continue_conversation(
-                    conversation_reference_inner, send_message, self._app_id
+
+                conversation_parameters = ConversationParameters(
+                    is_group=False,
+                    bot=turn_context.activity.recipient,
+                    members=[member],
+                    tenant_id=turn_context.activity.conversation.tenant_id,
                 )
 
-            async def send_message(tc2: TurnContext):
-                return await tc2.send_activity(
-                    f"Hello {member.name}. I'm a Teams conversation bot."
-                )  # pylint: disable=cell-var-from-loop
+                async def get_ref(tc1):
+                    conversation_reference_inner = TurnContext.get_conversation_reference(
+                        tc1.activity
+                    )
+                    return await tc1.adapter.continue_conversation(
+                        conversation_reference_inner, send_message, self._app_id
+                    )
 
-            await turn_context.adapter.create_conversation(
-                conversation_reference, get_ref, conversation_parameters
-            )
+                async def send_message(tc2: TurnContext):
+                    return await tc2.send_activity(
+                        "Hi you were mentioned in the meeting. Here's some context: " + context_message
+                    )  # pylint: disable=cell-var-from-loop
+
+                await turn_context.adapter.create_conversation(
+                    conversation_reference, get_ref, conversation_parameters
+                )
+        mentioned_members = ','.join(mentioned_members_list)
 
         await turn_context.send_activity(
-            MessageFactory.text("All messages have been sent")
+            MessageFactory.text("All members who's names were mentioned in the meeting were notified with context: " + mentioned_members)
         )
 
-    # async def _get_paged_members(
-    #     self, turn_context: TurnContext
-    # ) -> List[TeamsChannelAccount]:
-    #     paged_members = []
-    #     continuation_token = None
+    async def _get_paged_members(
+        self, turn_context: TurnContext
+    ) -> List[TeamsChannelAccount]:
+        paged_members = []
+        continuation_token = None
 
-    #     while True:
-    #         current_page = await TeamsInfo.get_paged_members(
-    #             turn_context, continuation_token, 100
-    #         )
-    #         continuation_token = current_page.continuation_token
-    #         paged_members.extend(current_page.members)
+        while True:
+            current_page = await TeamsInfo.get_paged_members(
+                turn_context, continuation_token, 100
+            )
+            continuation_token = current_page.continuation_token
+            paged_members.extend(current_page.members)
 
-    #         if continuation_token is None:
-    #             break
+            if continuation_token is None:
+                break
 
-    #     return paged_members
-
-    async def _delete_card_activity(self, turn_context: TurnContext):
-        await turn_context.delete_activity(turn_context.activity.reply_to_id)
+        return paged_members
