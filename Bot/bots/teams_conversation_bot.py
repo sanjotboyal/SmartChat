@@ -119,11 +119,11 @@ class TeamsConversationBot(TeamsActivityHandler):
     async def _summarize(self, turn_context: TurnContext):
         passed_message = turn_context.activity.text
 
-        if(len(passed_message.split()) == 2):
-            url_required = passed_message.split(" ")[1]
+        if(len(passed_message.split(" ")) == 3):
+            url_required = passed_message.split(" ")[2]
             guid_start = url_required.find("video/") + 6
-            guid_end = url_required.find("?")
-            GUID = url_required[guid_start:guid_end]
+            #guid_end = url_required.find("?")
+            GUID = url_required[guid_start:]
 
             # add to meetings list 
             meetings_list.append(GUID)
@@ -140,12 +140,13 @@ class TeamsConversationBot(TeamsActivityHandler):
             # TODO: Replace with function call that runs Azure Cognitive API and Summary API
             # Call to Summary and analytics API
             summary_text = summarize.summarize(transcription_text)
+            
             file.close()
             
             
             await self._send_summary_card(turn_context, url_required, summary_text, GUID)
         else: 
-            message = "Missing a valid Stream URL..."
+            message = "Missing/Invalid Stream URL..."
             reply_activity = MessageFactory.text(message)
             await turn_context.send_activity(reply_activity)
         
