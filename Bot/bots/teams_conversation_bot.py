@@ -53,9 +53,6 @@ class TeamsConversationBot(TeamsActivityHandler):
 
         if "previous" in text:
             await self._previous_meeting(turn_context)
-        
-            
-        
 
         #await self._send_card(turn_context, False)
         #return
@@ -136,23 +133,23 @@ class TeamsConversationBot(TeamsActivityHandler):
             # TODO: Replace with function call that retrieves JSON
             # Call to retrieve meeting transcript
 
-            transcription_text = TranscriptionScraper.getMeetingJson(GUID)
+            #transcription_text = TranscriptionScraper.getMeetingJson(GUID)
 
             # # temporarily using fake sample file text
             # # read file
-            #file = open('bots/sample.txt', 'rb')
-            #transcription_text = file.read()
+            file = open('bots/sample.txt', 'rb')
+            transcription_text = file.read()
             
             # TODO: Replace with function call that runs Azure Cognitive API and Summary API
             # Call to Summary and analytics API
             summary_json = json.loads(summarize.summarize(transcription_text))
-            #file.close()
+            file.close()
 
             # Send summary card to chat
             await self._send_summary_card(turn_context, url_required, summary_json, GUID)
 
             # Personal Message members of the chat that were mentioned in the meeting
-            await self._message_all_members(turn_context, str(transcription_text))
+            await self._message_all_members(turn_context, str(transcription_text), url_required)
 
         else: 
             message = "Missing/Invalid Stream URL..."
@@ -178,7 +175,7 @@ class TeamsConversationBot(TeamsActivityHandler):
             )
         ]
         card = HeroCard(
-            title="Summary of this Meeting: " + GUID, subtitle= "Meeting Sentiment" + str(summary_json["sentiment"]),text = summary_json["summary_text"], buttons = buttons
+            title="Summary of this Meeting: " + GUID, subtitle= "Meeting Sentiment: " + str(summary_json["sentiment"]),text = summary_json["summary_text"], buttons = buttons
         )
         await turn_context.send_activity(
             MessageFactory.attachment(CardFactory.hero_card(card))
@@ -220,7 +217,7 @@ class TeamsConversationBot(TeamsActivityHandler):
         else:
             await turn_context.send_activity(f"You are: {member.name}")
 
-    async def _message_all_members(self, turn_context: TurnContext, transcription_text):
+    async def _message_all_members(self, turn_context: TurnContext, transcription_text, meeting_url):
         team_members = await self._get_paged_members(turn_context)
 
         for member in team_members:
@@ -238,17 +235,32 @@ class TeamsConversationBot(TeamsActivityHandler):
                 transcription_text = transcription_text.replace("\\n","")
 
                 transcription_list = transcription_text.lower().split(" ")
-                
-                # find name placement in transcription list 
-                indexFound = transcription_list.index(member_first_name.lower())
 
-                # get range of words around name to get context and form message
-                context_threshold_range = 10
-                context_message = ""
-                
-                # compose message with context
-                for word in range (indexFound - context_threshold_range, indexFound + context_threshold_range):
-                    context_message += transcription_list[word] + " "
+                mentioned_messages_list = []
+
+                startIndex = -1
+                for i in range(0, len(transcription_list)):
+
+                    try:
+                        # find name placement in transcription list 
+                        indexFound = transcription_list.index(member_first_name.lower(), startIndex + 1)
+                    except:
+                        # if name is no longer in transcription list..break loop of looking for more name mentions 
+                        break
+
+                    # get range of words around name to get context and form message
+                    context_threshold_range = 10
+                    context_message = ""
+                    
+                    # compose message with context
+                    for word in range (indexFound - context_threshold_range, indexFound + context_threshold_range):
+                        context_message += transcription_list[word] + " "
+
+                    # add mentioned message instnace into list of mentions (multiple times during a meeting)
+                    mentioned_messages_list.append(context_message)
+
+                    # update startIndex to start after found
+                    startIndex = indexFound
 
                 conversation_reference = TurnContext.get_conversation_reference(
                     turn_context.activity
@@ -269,11 +281,23 @@ class TeamsConversationBot(TeamsActivityHandler):
                         conversation_reference_inner, send_message, self._app_id
                     )
 
-                    
+                buttons = [
+                    CardAction(
+                        type=ActionTypes.message_back, 
+                        title="See Meeting Recording",
+                        text="recording", 
+                        value={"meetingURL": meeting_url}
+                    )
+                ]
+                mentions_text = ','.join(mentioned_messages_list)
+
+                card = HeroCard(
+                    title="Hi you were mentioned in this meeting!", subtitle= "See the context of the mentions below!",text = mentions_text, buttons = buttons
+                )
 
                 async def send_message(tc2: TurnContext):
                     return await tc2.send_activity(
-                        "Hi you were mentioned in the meeting. Here's some context: " + context_message
+                        MessageFactory.attachment(CardFactory.hero_card(card))
                     )  # pylint: disable=cell-var-from-loop
 
                 await turn_context.adapter.create_conversation(
