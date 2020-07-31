@@ -80,13 +80,14 @@ class TeamsConversationBot(TeamsActivityHandler):
 
             # # temporarily using fake sample file text
             # # read file
-            file = open('bots/sample.txt', 'rb')
-            transcription_text = file.read()
+            #file = open('bots/sample.txt', 'rb')
+            #transcription_text = file.read()
+            transcription_text = TranscriptionScraper.getMeetingJson(GUID)
             
             # TODO: Replace with function call that runs Azure Cognitive API and Summary API
             # Call to Summary and analytics API
             summary_json = json.loads(summarize.summarize(transcription_text))
-            file.close()
+            #file.close()
             await self._send_last_meeting_card(turn_context, url_required, summary_json, GUID)
         else: 
             message = "There was no recorded meetings before this..."
@@ -104,13 +105,14 @@ class TeamsConversationBot(TeamsActivityHandler):
 
             # # temporarily using fake sample file text
             # # read file
-            file = open('bots/sample.txt', 'rb')
-            transcription_text = file.read()
+            #file = open('bots/sample.txt', 'rb')
+            #transcription_text = file.read()
+            transcription_text = TranscriptionScraper.getMeetingJson(GUID)
             
             # TODO: Replace with function call that runs Azure Cognitive API and Summary API
             # Call to Summary and analytics API
             summary_json = json.loads(summarize.summarize(transcription_text))
-            file.close()
+            #file.close()
             await self._send_last_meeting_card(turn_context, url_required, summary_json, GUID)
 
         else: 
@@ -133,23 +135,23 @@ class TeamsConversationBot(TeamsActivityHandler):
             # TODO: Replace with function call that retrieves JSON
             # Call to retrieve meeting transcript
 
-            #transcription_text = TranscriptionScraper.getMeetingJson(GUID)
+            transcription_text = TranscriptionScraper.getMeetingJson(GUID)
 
             # # temporarily using fake sample file text
             # # read file
-            file = open('bots/sample.txt', 'rb')
-            transcription_text = file.read()
+            #file = open('bots/sample.txt', 'rb')
+            #transcription_text = file.read()
             
             # TODO: Replace with function call that runs Azure Cognitive API and Summary API
             # Call to Summary and analytics API
             summary_json = json.loads(summarize.summarize(transcription_text))
-            file.close()
+            #file.close()
 
             # Send summary card to chat
             await self._send_summary_card(turn_context, url_required, summary_json, GUID)
 
             # Personal Message members of the chat that were mentioned in the meeting
-            await self._message_all_members(turn_context, str(transcription_text), url_required)
+            await self._message_all_members(turn_context, str(transcription_text), url_required, GUID)
 
         else: 
             message = "Missing/Invalid Stream URL..."
@@ -175,7 +177,7 @@ class TeamsConversationBot(TeamsActivityHandler):
             )
         ]
         card = HeroCard(
-            title="Summary of this Meeting: " + GUID, subtitle= "Meeting Sentiment: " + str(summary_json["sentiment"]),text = summary_json["summary_text"], buttons = buttons
+            title="Summary of previous Meeting: " + GUID, subtitle= "Meeting Sentiment: " + str(summary_json["sentiment"]),text = summary_json["summary_text"], buttons = buttons
         )
         await turn_context.send_activity(
             MessageFactory.attachment(CardFactory.hero_card(card))
@@ -217,7 +219,7 @@ class TeamsConversationBot(TeamsActivityHandler):
         else:
             await turn_context.send_activity(f"You are: {member.name}")
 
-    async def _message_all_members(self, turn_context: TurnContext, transcription_text, meeting_url):
+    async def _message_all_members(self, turn_context: TurnContext, transcription_text, meeting_url, GUID):
         team_members = await self._get_paged_members(turn_context)
 
         for member in team_members:
@@ -231,6 +233,7 @@ class TeamsConversationBot(TeamsActivityHandler):
                 # split text into words. Remove punctuation to prevent mistakes in indexing 
                 transcription_text = transcription_text.replace(",","")
                 transcription_text = transcription_text.replace(".","")
+                transcription_text = transcription_text.replace("?"," ")
                 transcription_text = transcription_text.replace("\\r"," ")
                 transcription_text = transcription_text.replace("\\n","")
 
@@ -239,6 +242,7 @@ class TeamsConversationBot(TeamsActivityHandler):
                 mentioned_messages_list = []
 
                 startIndex = -1
+                matchFound = 0
                 for i in range(0, len(transcription_list)):
 
                     try:
@@ -257,6 +261,9 @@ class TeamsConversationBot(TeamsActivityHandler):
                         context_message += transcription_list[word] + " "
 
                     # add mentioned message instnace into list of mentions (multiple times during a meeting)
+                    message_start_time = TranscriptionScraper.getTimeStamps(GUID, member_first_name.lower())
+                    context_message += "... @" + message_start_time[matchFound] + "|"
+                    matchFound = matchFound + 1
                     mentioned_messages_list.append(context_message)
 
                     # update startIndex to start after found
