@@ -10,9 +10,9 @@ def summarize(content):
     },
     headers={'api-key': '2080747b-b6f5-45a2-8f76-b919ebff180b'}
     )
-    sentiment_rating = sentiment(r.json()["output"])
+    sentiment_rating = sentiment(content)
 
     output_json_data = {"sentiment": sentiment_rating, "summary_text": r.json()["output"]}
     output_json = json.dumps(output_json_data)
-    
+
     return output_json
